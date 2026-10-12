@@ -1,10 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<title>Dinesh Choudhary</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101318">
+  <title>Scrap details</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h1> Thank You !!! </h1>
-<h3>Please don't visit again...</h3>
+  <header class="mast">
+    <p class="date" id="date"></p>
+    <h1 id="title">Scrap details</h1>
+    <p class="who" id="who"></p>
+    <p class="note" id="note"></p>
+  </header>
+  <div class="top">
+    <div class="toggles">
+      <div class="seg" id="lang-toggle" role="group" aria-label="Language"></div>
+      <div class="seg" id="unit-toggle" role="group" aria-label="Size unit"></div>
+    </div>
+    <div class="weight-line" id="weight-line" aria-live="polite">
+      <p class="weight-label" id="weight-label"></p>
+      <p class="weight-value"><span id="weight-value">—</span> <span class="unit">kg</span></p>
+      <p class="weight-meta" id="weight-meta"></p>
+    </div>
+  </div>
+
+  <main>
+    <p class="hint" id="hint"></p>
+    <form class="filters" id="filters" autocomplete="off"></form>
+    <p class="status" id="status"></p>
+    <div class="table-wrap" id="table-wrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="cards" id="cards"></div>
+  </main>
+  <script src="app.js"></script>
 </body>
 </html>
