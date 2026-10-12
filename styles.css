@@ -188,14 +188,50 @@ main {
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.field.search { grid-column: 1 / -1; }
 .field.clear { align-self: end; }
 
-.field span {
+.choices {
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--sunken);
+  padding: 4px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.choice.is-on { background: rgba(224, 181, 106, 0.16); }
+
+.choice input {
+  width: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: #e0b56a;
+  flex: 0 0 auto;
+}
+
+.field > span {
   color: var(--muted);
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.choice span {
+  color: var(--text);
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 input, select, .filters button {
@@ -337,7 +373,7 @@ tr.grade-s td:first-child { box-shadow: inset 3px 0 0 var(--brass); }
   border-color: var(--brass);
 }
 
-html[lang="ja"] .field span,
+html[lang="ja"] .field > span,
 html[lang="ja"] .weight-label,
 html[lang="ja"] .date {
   letter-spacing: 0;
@@ -351,8 +387,7 @@ html[lang="ja"] .date {
 }
 
 @media (min-width: 1100px) {
-  .filters { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
-  .field.search { grid-column: auto; }
+  .filters { grid-template-columns: 1.3fr 0.9fr 1.2fr 0.8fr 0.6fr auto; }
   .field.clear { grid-column: auto; }
   .table-wrap { display: block; }
   .cards { display: none; }

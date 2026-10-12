@@ -5,8 +5,6 @@
   const UI = {
     en: {
       titleFallback: "Scrap details",
-      search: "Search",
-      searchPh: "Color code or name",
       page: "Page",
       code: "Color code",
       name: "Name",
@@ -26,15 +24,13 @@
       none: "No rows match these filters.",
       loading: "Loading the sheet…",
       failed: "The sheet could not be loaded from the JSON file.",
-      hint: "Every selected filter applies together.",
+      hint: "Several values in one filter all count. Every filter applies together.",
       missing: function (pages) { return "Page " + pages.join(", ") + " is not included."; },
       langName: "Language",
       unitName: "Size unit"
     },
     ja: {
       titleFallback: "スクラップ明細",
-      search: "検索",
-      searchPh: "色番・呼称",
       page: "ページ",
       code: "色番",
       name: "呼称",
@@ -54,7 +50,7 @@
       none: "条件に合う行がありません。",
       loading: "明細を読み込んでいます…",
       failed: "JSONファイルから明細を読み込めませんでした。",
-      hint: "選んだ条件はすべて同時に適用されます。",
+      hint: "同じ条件では選んだ値のいずれかに一致します。条件どうしはすべて同時に適用されます。",
       missing: function (pages) { return pages.join("、") + "ページは含まれていません。"; },
       langName: "言語",
       unitName: "寸法単位"
@@ -64,7 +60,7 @@
   const state = {
     lang: "en",
     unit: localStorage.getItem("scrap-unit") === "ft" ? "ft" : "mm",
-    filters: { q: "", page: "", code: "", name: "", thickness: "", size: "", mask: "", grade: "" }
+    filters: { name: [], thickness: [], size: [], mask: [], grade: [] }
   };
 
   const els = {
@@ -143,24 +139,20 @@
   }
 
   function filtersActive() {
-    return Object.values(state.filters).some(function (v) { return String(v).trim() !== ""; });
+    return Object.keys(state.filters).some(function (key) { return state.filters[key].length > 0; });
+  }
+
+  function chosen(list, value) {
+    return list.length === 0 || list.indexOf(value) !== -1;
   }
 
   function matchRow(row) {
     const f = state.filters;
-    if (f.q.trim()) {
-      const hay = (row.color_code + " " + row.name_ja + " " + row.name_en).toLowerCase();
-      if (hay.indexOf(f.q.trim().toLowerCase()) === -1) return false;
-    }
-    if (f.page && String(row.page) !== f.page) return false;
-    if (f.code && row.color_code !== f.code) return false;
-    if (f.name && row.name_ja !== f.name) return false;
-    if (f.thickness && Number(row.thickness_mm).toFixed(1) !== f.thickness) return false;
-    if (f.size && row.size !== f.size) return false;
-    if (f.mask === "__empty" && row.mask) return false;
-    if (f.mask && f.mask !== "__empty" && row.mask !== f.mask) return false;
-    if (f.grade && row.grade !== f.grade) return false;
-    return true;
+    return chosen(f.name, row.name_ja)
+      && chosen(f.thickness, Number(row.thickness_mm).toFixed(1))
+      && chosen(f.size, row.size)
+      && chosen(f.mask, row.mask || "__empty")
+      && chosen(f.grade, row.grade);
   }
 
   function unique(rows, pick) {
@@ -173,21 +165,6 @@
       out.push(item);
     });
     return out;
-  }
-
-  function option(value, label) {
-    const node = document.createElement("option");
-    node.value = value;
-    node.textContent = label;
-    return node;
-  }
-
-  function fillSelect(select, items, current) {
-    const next = document.createDocumentFragment();
-    items.forEach(function (item) { next.appendChild(option(item.value, item.label)); });
-    select.replaceChildren(next);
-    select.value = items.some(function (item) { return item.value === current; }) ? current : "";
-    if (select.value !== current) state.filters[select.dataset.key] = select.value;
   }
 
   function buildToggles() {
@@ -220,44 +197,23 @@
     els.unitToggle.setAttribute("aria-label", t().unitName);
   }
 
+  function readChecks(box) {
+    const next = [];
+    box.querySelectorAll("input:checked").forEach(function (el) { next.push(el.value); });
+    return next;
+  }
+
   function buildFilters() {
-    const spec = [
-      ["q", "search", "search"],
-      ["page", "page", "select"],
-      ["code", "code", "select"],
-      ["name", "name", "select"],
-      ["thickness", "thickness", "select"],
-      ["size", "size", "select"],
-      ["mask", "mask", "select"],
-      ["grade", "grade", "select"]
-    ];
-    els.filters.replaceChildren();
-    spec.forEach(function (item) {
-      const key = item[0];
-      const labelKey = item[1];
-      const kind = item[2];
-      const field = document.createElement("label");
-      field.className = "field" + (key === "q" ? " search" : "");
+    ["name", "thickness", "size", "mask", "grade"].forEach(function (key) {
+      const field = document.createElement("div");
+      field.className = "field";
       const span = document.createElement("span");
-      span.dataset.label = labelKey;
-      const input = kind === "search" ? document.createElement("input") : document.createElement("select");
-      if (kind === "search") {
-        input.type = "search";
-        input.dataset.key = "q";
-        input.addEventListener("input", function () {
-          state.filters.q = input.value;
-          paintResults();
-        });
-      } else {
-        input.dataset.key = key;
-        input.addEventListener("change", function () {
-          state.filters[key] = input.value;
-          paintResults();
-        });
-      }
-      field.append(span, input);
+      const box = document.createElement("div");
+      box.className = "choices";
+      box.dataset.key = key;
+      field.append(span, box);
       els.filters.appendChild(field);
-      controls[key] = { span: span, input: input };
+      controls[key] = { span: span, box: box };
     });
 
     const clearField = document.createElement("div");
@@ -268,8 +224,7 @@
     clearBtn.type = "button";
     clearBtn.id = "clear";
     clearBtn.addEventListener("click", function () {
-      state.filters = { q: "", page: "", code: "", name: "", thickness: "", size: "", mask: "", grade: "" };
-      controls.q.input.value = "";
+      state.filters = { name: [], thickness: [], size: [], mask: [], grade: [] };
       paint();
     });
     clearField.append(clearLabel, clearBtn);
@@ -279,20 +234,34 @@
     els.filters.addEventListener("submit", function (event) { event.preventDefault(); });
   }
 
+  function renderChoices(key, items) {
+    const box = controls[key].box;
+    const selected = {};
+    state.filters[key].forEach(function (value) { selected[value] = true; });
+    box.replaceChildren();
+    items.forEach(function (item) {
+      const label = document.createElement("label");
+      label.className = "choice";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = item.value;
+      input.checked = !!selected[item.value];
+      if (input.checked) label.classList.add("is-on");
+      input.addEventListener("change", function () {
+        label.classList.toggle("is-on", input.checked);
+        state.filters[key] = readChecks(box);
+        paintResults();
+      });
+      const text = document.createElement("span");
+      text.textContent = item.label;
+      label.append(input, text);
+      box.appendChild(label);
+    });
+  }
+
   function refreshFilterChoices() {
     const rows = data.rows;
     const copy = t();
-    controls.q.span.textContent = copy.search;
-    controls.q.input.placeholder = copy.searchPh;
-    controls.q.input.value = state.filters.q;
-
-    const pages = unique(rows, function (row) {
-      return { key: String(row.page), value: String(row.page), label: String(row.page) };
-    }).sort(function (a, b) { return Number(a.value) - Number(b.value); });
-
-    const codes = unique(rows, function (row) {
-      return { key: row.color_code, value: row.color_code, label: row.color_code };
-    }).sort(function (a, b) { return a.value.localeCompare(b.value, "en", { numeric: true }); });
 
     const names = unique(rows, function (row) {
       return { key: row.name_ja, value: row.name_ja, label: nameText(row) };
@@ -317,17 +286,14 @@
     }).sort(function (a, b) { return a.value.localeCompare(b.value); });
 
     [
-      ["page", pages],
-      ["code", codes],
       ["name", names],
       ["thickness", thicknesses],
       ["size", sizes],
       ["mask", masks],
       ["grade", grades]
     ].forEach(function (pair) {
-      const key = pair[0];
-      controls[key].span.textContent = copy[key];
-      fillSelect(controls[key].input, [{ value: "", label: copy.all }].concat(pair[1]), state.filters[key]);
+      controls[pair[0]].span.textContent = copy[pair[0]];
+      renderChoices(pair[0], pair[1]);
     });
 
     controls.clear.textContent = copy.clear;
